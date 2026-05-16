@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <rect width="192" height="192" rx="32" fill="#15803d"/>
+  <g transform="translate(96,88)" fill="white">
+    <!-- Cow head -->
+    <ellipse cx="0" cy="8" rx="28" ry="24"/>
+    <!-- Ears -->
+    <ellipse cx="-30" cy="-12" rx="10" ry="6" transform="rotate(-20)"/>
+    <ellipse cx="30" cy="-12" rx="10" ry="6" transform="rotate(20)"/>
+    <!-- Horns -->
+    <path d="M-22,-18 Q-28,-38 -18,-40" stroke="white" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <path d="M22,-18 Q28,-38 18,-40" stroke="white" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <!-- Eyes -->
+    <circle cx="-10" cy="2" r="3.5" fill="#15803d"/>
+    <circle cx="10" cy="2" r="3.5" fill="#15803d"/>
+    <!-- Nose -->
+    <ellipse cx="0" cy="18" rx="14" ry="9" fill="#dcfce7" opacity="0.5"/>
+    <circle cx="-5" cy="18" r="2" fill="#15803d"/>
+    <circle cx="5" cy="18" r="2" fill="#15803d"/>
+  </g>
+  <!-- Text -->
+  <text x="96" y="148" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="22" fill="white" letter-spacing="1">GORUFARM</text>
+</svg>
