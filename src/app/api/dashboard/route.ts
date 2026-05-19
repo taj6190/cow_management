@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Cow from '@/models/Cow';
-import Transaction from '@/models/Transaction';
 import '@/models/Owner'; // Ensure Owner schema is registered for populate
+import Transaction from '@/models/Transaction';
+import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
@@ -66,7 +66,7 @@ export async function GET() {
 
     // Recent transactions
     const recentTransactions = await Transaction.find()
-      .populate('cowId', 'tag name')
+      .populate('cowIds', 'tag name')
       .populate('paidBy', 'name')
       .sort({ date: -1, createdAt: -1 })
       .limit(8)

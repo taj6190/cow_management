@@ -15,6 +15,7 @@ export default function EditCowPage({ params }: { params: Promise<{ id: string }
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [form, setForm] = useState({
     tag: '',
@@ -67,6 +68,7 @@ export default function EditCowPage({ params }: { params: Promise<{ id: string }
     const reader = new FileReader();
     reader.onload = () => setImagePreview(reader.result as string);
     reader.readAsDataURL(file);
+    setUploading(true);
     const formData = new FormData();
     formData.append('image', file);
     try {
@@ -75,10 +77,15 @@ export default function EditCowPage({ params }: { params: Promise<{ id: string }
       if (res.ok) {
         setForm((prev) => ({ ...prev, image: data.url }));
         showToast('Image uploaded');
+      } else {
+        showToast(data.error || 'Upload failed', 'error');
+        setImagePreview(null);
       }
     } catch {
       showToast('Image upload failed', 'error');
+      setImagePreview(null);
     }
+    setUploading(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -132,7 +139,7 @@ export default function EditCowPage({ params }: { params: Promise<{ id: string }
           <div className="flex items-center gap-4">
             {(imagePreview || form.image) && (
               <div className="relative w-24 h-24 rounded-xl overflow-hidden border border-surface-200">
-                <Image src={imagePreview || form.image} alt="Preview" fill className="object-cover" />
+                <Image src={imagePreview || form.image} alt="Preview" fill sizes="96px" unoptimized={!!imagePreview} className="object-cover" />
                 <button
                   type="button"
                   onClick={() => { setImagePreview(null); setForm((p) => ({ ...p, image: '' })); }}
@@ -143,9 +150,9 @@ export default function EditCowPage({ params }: { params: Promise<{ id: string }
               </div>
             )}
             <label className="flex-1 cursor-pointer">
-              <div className="border-2 border-dashed border-surface-200 rounded-xl p-6 text-center hover:border-primary-400 transition-all">
-                <FiUpload className="mx-auto text-surface-400 mb-2" size={24} />
-                <p className="text-sm text-surface-500">Upload new photo</p>
+              <div className={`border-2 border-dashed rounded-xl p-6 text-center transition-all ${uploading ? 'border-primary-400 bg-primary-50/50' : 'border-surface-200 hover:border-primary-400'}`}>
+                <FiUpload className={`mx-auto mb-2 ${uploading ? 'text-primary-500 animate-pulse' : 'text-surface-400'}`} size={24} />
+                <p className="text-sm text-surface-500">{uploading ? 'Uploading...' : 'Upload new photo'}</p>
               </div>
               <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
             </label>
@@ -252,8 +259,8 @@ export default function EditCowPage({ params }: { params: Promise<{ id: string }
         {/* Actions */}
         <div className="flex gap-3 justify-end">
           <Link href={`/cows/${id}`} className="btn-secondary">Cancel</Link>
-          <button type="submit" disabled={saving} className="btn-primary">
-            {saving ? 'Saving...' : 'Save Changes'}
+          <button type="submit" disabled={saving || uploading} className="btn-primary">
+            {saving ? 'Saving...' : uploading ? 'Wait for upload...' : 'Save Changes'}
           </button>
         </div>
       </form>

@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
       const transactions = await Transaction.find({
         date: { $gte: monthStart, $lte: monthEnd },
       })
-        .populate('cowId', 'tag name')
+        .populate('cowIds', 'tag name')
         .sort({ date: -1 })
         .lean();
 
@@ -131,10 +131,21 @@ export async function GET(request: NextRequest) {
 
       const cowCosts = await Promise.all(
         cows.map(async (cow) => {
-          // Individual expenses for this cow
+          // Individual expenses for this cow (share = amount / cowIds.length)
           const individualExpenses = await Transaction.aggregate([
-            { $match: { type: 'expense', cowId: cow._id } },
-            { $group: { _id: null, total: { $sum: '$amount' } } },
+            { $match: { type: 'expense', cowIds: cow._id } },
+            { 
+              $project: { 
+                share: { 
+                  $cond: [
+                    { $gt: [{ $size: { $ifNull: ['$cowIds', []] } }, 0] },
+                    { $divide: ['$amount', { $size: { $ifNull: ['$cowIds', []] } }] },
+                    '$amount'
+                  ] 
+                } 
+              } 
+            },
+            { $group: { _id: null, total: { $sum: '$share' } } },
           ]);
 
           // Calculate shared cost: for each month the cow was active,
@@ -190,6 +201,7 @@ export async function GET(request: NextRequest) {
             _id: cow._id,
             tag: cow.tag,
             name: cow.name,
+            image: cow.image,
             status: cow.status,
             purchasePrice: cow.purchasePrice,
             sellPrice: cow.sellPrice || null,
@@ -282,7 +294,7 @@ export async function GET(request: NextRequest) {
 
       // Fetch individual transactions for the detailed view
       const transactions = await Transaction.find(matchFilter)
-        .populate('cowId', 'tag name')
+        .populate('cowIds', 'tag name')
         .populate('paidBy', 'name')
         .sort({ date: -1 })
         .limit(500)

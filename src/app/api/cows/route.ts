@@ -57,6 +57,19 @@ export async function POST(request: NextRequest) {
       body.createdByName = token.name;
     }
 
+    // Auto-generate tag if not provided
+    if (!body.tag || body.tag.trim() === '') {
+      const lastCow = await Cow.findOne({ tag: /^cow-\d{4}$/i }).sort({ tag: -1 });
+      let nextNumber = 1;
+      if (lastCow && lastCow.tag) {
+        const match = lastCow.tag.match(/cow-(\d{4})/i);
+        if (match && match[1]) {
+          nextNumber = parseInt(match[1], 10) + 1;
+        }
+      }
+      body.tag = `cow-${nextNumber.toString().padStart(4, '0')}`;
+    }
+
     const cow = await Cow.create(body);
     return NextResponse.json(cow, { status: 201 });
   } catch (error) {

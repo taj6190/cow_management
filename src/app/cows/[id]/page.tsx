@@ -39,6 +39,7 @@ interface CowTransaction {
   amount: number;
   date: string;
   description: string;
+  cowIds?: string[];
 }
 
 export default function CowDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -46,9 +47,9 @@ export default function CowDetailPage({ params }: { params: Promise<{ id: string
   const router = useRouter();
   const { showToast } = useToast();
 
-  const { data: cow, error: cowError, isLoading: cowLoading } = useSWR<CowDetail>(`/api/cows/${id}`, fetcher);
-  const { data: txData, error: txError } = useSWR(`/api/transactions?cowId=${id}&limit=100`, fetcher);
-  const { data: costReport, error: costError } = useSWR(`/api/reports?type=cow-cost`, fetcher);
+  const { data: cow, error: cowError, isLoading: cowLoading } = useSWR<CowDetail>(`/api/cows/${id}`, fetcher, { dedupingInterval: 10000 });
+  const { data: txData, error: txError } = useSWR(`/api/transactions?cowId=${id}&limit=100`, fetcher, { dedupingInterval: 10000 });
+  const { data: costReport, error: costError } = useSWR(`/api/reports?type=cow-cost`, fetcher, { dedupingInterval: 30000 });
 
   const transactions: CowTransaction[] = txData?.transactions || [];
   
@@ -123,7 +124,7 @@ export default function CowDetailPage({ params }: { params: Promise<{ id: string
           <div className="card overflow-hidden">
             <div className="relative h-64 bg-surface-100">
               {cow.image ? (
-                <Image src={cow.image} alt={cow.tag} fill className="object-cover" />
+                <Image src={cow.image} alt={cow.tag} fill sizes="(max-width: 1024px) 100vw, 33vw" priority className="object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
                   <GiCow className="text-surface-300" size={64} />
@@ -283,7 +284,7 @@ export default function CowDetailPage({ params }: { params: Promise<{ id: string
                       <p className="text-xs text-surface-400">{formatDate(t.date)} • {t.description}</p>
                     </div>
                     <span className={`text-sm font-semibold ${t.type === 'income' ? 'text-green-600' : 'text-red-500'}`}>
-                      {t.type === 'income' ? '+' : '-'}{formatBDT(t.amount)}
+                      {t.type === 'income' ? '+' : '-'}{formatBDT(t.cowIds && t.cowIds.length > 0 ? t.amount / t.cowIds.length : t.amount)}
                     </span>
                   </div>
                 ))}

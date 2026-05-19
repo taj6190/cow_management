@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
 import dbConnect from '@/lib/db';
 import Transaction from '@/models/Transaction';
+import { getToken } from 'next-auth/jwt';
+import { NextRequest, NextResponse } from 'next/server';
 
 // GET all transactions with filters
 export async function GET(request: NextRequest) {
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     const filter: any = {};
     if (type && type !== 'all') filter.type = type;
     if (category) filter.category = category;
-    if (cowId) filter.cowId = cowId;
+    if (cowId) filter.cowIds = cowId;
     if (startDate || endDate) {
       filter.date = {};
       if (startDate) filter.date.$gte = new Date(startDate);
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
 
     const total = await Transaction.countDocuments(filter);
     const transactions = await Transaction.find(filter)
-      .populate('cowId', 'tag name')
+      .populate('cowIds', 'tag name')
       .sort({ date: -1, createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
@@ -73,14 +73,12 @@ export async function POST(request: NextRequest) {
       body.createdByName = token.name;
     }
 
-    // Clean up cowId: if it's empty string or not present, set to null
-    if (!body.cowId || body.cowId === '') {
-      body.cowId = null;
+    if (!body.cowIds || !Array.isArray(body.cowIds) || body.cowIds.length === 0) {
+      body.cowIds = [];
       body.isShared = true;
     } else {
       body.isShared = false;
     }
-
 
     const transaction = await Transaction.create(body);
     return NextResponse.json(transaction, { status: 201 });
@@ -89,4 +87,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to create transaction' }, { status: 500 });
   }
 }
-

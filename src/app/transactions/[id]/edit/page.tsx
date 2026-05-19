@@ -40,7 +40,7 @@ export default function EditTransactionPage({ params }: { params: Promise<{ id: 
     amount: '',
     date: '',
     description: '',
-    cowId: '',
+    cowIds: [] as string[],
     isShared: true,
     paidBy: '',
   });
@@ -55,10 +55,10 @@ export default function EditTransactionPage({ params }: { params: Promise<{ id: 
       setForm({
         type: tx.type,
         category: tx.category,
-        amount: tx.amount?.toString() || '',
+        amount: tx.cowIds && tx.cowIds.length > 0 ? (tx.amount / tx.cowIds.length).toString() : (tx.amount?.toString() || ''),
         date: tx.date ? formatDateForInput(tx.date) : '',
         description: tx.description || '',
-        cowId: tx.cowId?._id || tx.cowId || '',
+        cowIds: tx.cowIds ? tx.cowIds.map((c: any) => c._id || c) : [],
         isShared: tx.isShared,
         paidBy: tx.paidBy?._id || tx.paidBy || '',
       });
@@ -80,8 +80,8 @@ export default function EditTransactionPage({ params }: { params: Promise<{ id: 
     try {
       const payload = {
         ...form,
-        amount: Number(form.amount),
-        cowId: form.cowId || null,
+        amount: form.cowIds.length > 0 ? Number(form.amount) * form.cowIds.length : Number(form.amount),
+        cowIds: form.cowIds,
         paidBy: form.paidBy || null,
       };
       const res = await fetch(`/api/transactions/${id}`, {
@@ -185,17 +185,68 @@ export default function EditTransactionPage({ params }: { params: Promise<{ id: 
         {/* Cow */}
         {form.type !== 'investment' && (
           <div className="card p-4 space-y-3">
-            <h3 className="text-sm font-semibold text-surface-700">Link to Cow</h3>
-            <select
-              value={form.cowId}
-              onChange={(e) => setForm((p) => ({ ...p, cowId: e.target.value, isShared: !e.target.value }))}
-              className="input"
-            >
-              <option value="">No specific cow (Shared)</option>
-              {cows.map((c) => (
-                <option key={c._id} value={c._id}>{c.tag} {c.name ? `- ${c.name}` : ''}</option>
-              ))}
-            </select>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-surface-700">Link to Cow(s)</h3>
+              <button
+                type="button"
+                onClick={() => {
+                  if (form.cowIds.length === cows.length) {
+                    setForm(p => ({ ...p, cowIds: [], isShared: true }));
+                  } else {
+                    setForm(p => ({ ...p, cowIds: cows.map(c => c._id), isShared: false }));
+                  }
+                }}
+                className="text-xs font-medium text-primary-600 hover:text-primary-700"
+              >
+                {form.cowIds.length === cows.length ? 'Deselect All' : 'Select All Active'}
+              </button>
+            </div>
+            
+            <p className="text-xs text-surface-400 -mt-1">
+              Select multiple cows to duplicate this transaction for each of them.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto p-3 border border-surface-200 rounded-xl bg-surface-50">
+              {cows.length === 0 ? (
+                <p className="text-sm text-surface-500 col-span-2 text-center py-2">No active cows found.</p>
+              ) : (
+                cows.map((c) => (
+                  <label key={c._id} className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition-colors ${form.cowIds.includes(c._id) ? 'bg-primary-50 border-primary-200' : 'bg-surface-0 border-surface-200 hover:border-primary-300'}`}>
+                    <input
+                      type="checkbox"
+                      checked={form.cowIds.includes(c._id)}
+                      onChange={(e) => {
+                        setForm(p => {
+                          const newIds = e.target.checked 
+                            ? [...p.cowIds, c._id] 
+                            : p.cowIds.filter(id => id !== c._id);
+                          return { ...p, cowIds: newIds, isShared: newIds.length === 0 };
+                        });
+                      }}
+                      className="w-4 h-4 text-primary-600 rounded border-surface-300 focus:ring-primary-600"
+                    />
+                    <span className="text-sm font-medium text-surface-700">
+                      {c.tag} {c.name ? `- ${c.name}` : ''}
+                    </span>
+                  </label>
+                ))
+              )}
+            </div>
+
+            {form.cowIds.length === 0 && form.type === 'expense' && (
+              <div className="bg-accent-50 border border-accent-200 rounded-xl p-3">
+                <p className="text-xs text-accent-700">
+                  ℹ️ This expense will be considered a general farm expense (divided equally among all active cows in reports).
+                </p>
+              </div>
+            )}
+            {form.cowIds.length > 1 && (
+              <div className="bg-primary-50 border border-primary-200 rounded-xl p-3">
+                <p className="text-xs text-primary-700">
+                  ℹ️ The full amount of ৳{form.amount || 0} will be applied individually to each of the {form.cowIds.length} selected cows (Total: ৳{(Number(form.amount) || 0) * form.cowIds.length}).
+                </p>
+              </div>
+            )}
           </div>
         )}
 

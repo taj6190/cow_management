@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
-import { existsSync } from 'fs';
+import { uploadToCloudinary } from '@/lib/cloudinary';
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,22 +30,18 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true });
-    }
+    // Generate a unique public ID for the image
+    const publicId = `cow-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
 
-    // Generate unique filename
-    const ext = path.extname(file.name);
-    const filename = `cow-${Date.now()}-${Math.random().toString(36).substring(2, 8)}${ext}`;
-    const filepath = path.join(uploadsDir, filename);
-
-    await writeFile(filepath, buffer);
+    // Upload to Cloudinary with automatic optimization
+    const result = await uploadToCloudinary(buffer, {
+      folder: 'cow_management',
+      publicId,
+    });
 
     return NextResponse.json({
-      url: `/uploads/${filename}`,
-      filename,
+      url: result.url,
+      publicId: result.publicId,
     });
   } catch (error) {
     console.error('POST /api/upload error:', error);

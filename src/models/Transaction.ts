@@ -8,7 +8,7 @@ export interface ITransaction extends Document {
   amount: number;
   date: Date;
   description: string;
-  cowId?: mongoose.Types.ObjectId;
+  cowIds: mongoose.Types.ObjectId[];
   isShared: boolean;
   paidBy?: mongoose.Types.ObjectId;
   createdByName?: string;
@@ -43,11 +43,10 @@ const TransactionSchema = new Schema<ITransaction>(
       trim: true,
       default: '',
     },
-    cowId: {
+    cowIds: [{
       type: Schema.Types.ObjectId,
       ref: 'Cow',
-      default: null,
-    },
+    }],
     isShared: {
       type: Boolean,
       default: true,
@@ -75,10 +74,13 @@ const TransactionSchema = new Schema<ITransaction>(
 
 TransactionSchema.index({ date: -1 });
 TransactionSchema.index({ type: 1, date: -1 });
-TransactionSchema.index({ cowId: 1 });
+TransactionSchema.index({ cowIds: 1 });
 TransactionSchema.index({ paidBy: 1 });
 
-const Transaction: Model<ITransaction> =
-  mongoose.models.Transaction || mongoose.model<ITransaction>('Transaction', TransactionSchema);
+if (mongoose.models.Transaction) {
+  delete mongoose.models.Transaction;
+}
+
+const Transaction: Model<ITransaction> = mongoose.model<ITransaction>('Transaction', TransactionSchema);
 
 export default Transaction;

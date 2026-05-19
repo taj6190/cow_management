@@ -11,7 +11,7 @@ export async function GET(
   try {
     await dbConnect();
     const { id } = await params;
-    const transaction = await Transaction.findById(id).populate('cowId', 'tag name').lean();
+    const transaction = await Transaction.findById(id).populate('cowIds', 'tag name').lean();
     if (!transaction) {
       return NextResponse.json({ error: 'Transaction not found' }, { status: 404 });
     }
@@ -31,17 +31,19 @@ export async function PUT(
     await dbConnect();
     const { id } = await params;
     const body = await request.json();
-    if (!body.cowId || body.cowId === '') {
-      body.cowId = null;
-      body.isShared = true;
-    } else {
-      body.isShared = false;
-    }
     // Track who updated
     const token = await getToken({ req: request });
     if (token?.name) {
       body.updatedByName = token.name;
     }
+
+    if (!body.cowIds || !Array.isArray(body.cowIds) || body.cowIds.length === 0) {
+      body.cowIds = [];
+      body.isShared = true;
+    } else {
+      body.isShared = false;
+    }
+
     const transaction = await Transaction.findByIdAndUpdate(id, body, {
       new: true,
       runValidators: true,

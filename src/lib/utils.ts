@@ -2,7 +2,8 @@
  * Format a number as Bangladeshi Taka (BDT)
  */
 export function formatBDT(amount: number): string {
-  return `৳${amount.toLocaleString('en-BD', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+  const value = typeof amount === 'number' && !isNaN(amount) ? amount : 0;
+  return `Tk ${value.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
 /**

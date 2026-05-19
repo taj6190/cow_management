@@ -1,0 +1,162 @@
+================================================================================
+                           GORUFARM - PROJECT OVERVIEW
+================================================================================
+
+GoruFarm is a comprehensive, modern Farm Management Web Application designed 
+specifically for cattle farming businesses. Built with a robust MERN-adjacent stack 
+using Next.js (App Router), TypeScript, and MongoDB, it enables farmers and farm 
+partners to track cattle assets, catalog financial transactions, generate in-depth 
+financial analytics, manage partner investments, and keep secure backups of their data.
+
+--------------------------------------------------------------------------------
+1. TECHNOLOGY STACK
+--------------------------------------------------------------------------------
+* Frontend Framework: Next.js 16 (React 19, App Router)
+* Language: TypeScript (strict type checking)
+* Styling: Tailwind CSS v4 + PostCSS for beautiful, fluid layouts
+* Database: MongoDB via Mongoose (reliable document modeling and object mapping)
+* Authentication: NextAuth.js (credentials-based, secure session management)
+* Data Fetching: SWR (stale-while-revalidate client-side data fetching with caching)
+* Storage Integration: Cloudinary (cloud storage for cattle image uploads)
+* Data Exports:
+  - Excel Export: sheetjs/xlsx (generates native spreadsheet files)
+  - PDF Generation: jsPDF + html2canvas (exports visually clean reports)
+* UI Icons: React Icons (feather icons, game icons, etc.)
+
+--------------------------------------------------------------------------------
+2. DATABASE ARCHITECTURE (SCHEMAS & MODELS)
+--------------------------------------------------------------------------------
+The database consists of 5 core interconnected collections defined in Mongoose:
+
+* User (User.ts)
+  - Manages system access and authorization.
+  - Fields: name, email (unique, lowercase), password (hashed), role ('admin' | 'user').
+
+* Owner (Owner.ts)
+  - Manages farm partners, shareholders, or investors.
+  - Fields: name (unique), phone.
+
+* Category (Category.ts)
+  - Manages dynamic transaction types.
+  - Fields: name, type ('income' | 'expense' | 'investment').
+  - Constraint: Compound unique index on {name, type} to prevent duplicates.
+
+* Cow (Cow.ts)
+  - Tracks cattle details, lifecycle, and financial performance.
+  - Fields: tag (unique identifier), name, breed, dateOfBirth, purchaseDate, 
+    purchasePrice, weight, image, status ('active' | 'sold'), sellDate, 
+    sellPrice, buyerName, buyerPhone, notes, and activity log tracking.
+
+* Transaction (Transaction.ts)
+  - Registers all cash inflows, outflows, and capital investments.
+  - Fields: type ('income' | 'expense' | 'investment'), category, amount, date,
+    description, cowIds (array reference linking individual cows), isShared 
+    (indicates if expenses are shared across the herd), paidBy (reference to Owner),
+    createdByName, and updatedByName.
+
+--------------------------------------------------------------------------------
+3. CORE SYSTEM FEATURES & FUNCTIONALITY
+--------------------------------------------------------------------------------
+
+A. SECURE USER AUTHENTICATION
+   * Custom NextAuth.js setup protecting all internal routes.
+   * Graceful, responsive Login interface with full password hashing via bcryptjs.
+   * Multi-role support (Admin and User privileges) to manage write/read access.
+
+B. INTERACTIVE DASHBOARD
+   * Live count of Active vs. Sold cattle.
+   * Real-time metrics showing Monthly Income, Monthly Expenses, Monthly Investments, 
+     Net Profit/Loss, and Average shared cost per cow.
+   * Visually rich charts:
+     - Income vs. Expense monthly trend line/bar chart using Chart.js.
+     - Expense categories distribution doughnut chart.
+   * Recent Transactions log displaying recent updates and cow references.
+   * "Share Summary" feature to quickly export a beautifully formatted markdown 
+     summary of the farm's monthly financials straight to WhatsApp.
+
+C. CATTLE / COW MANAGEMENT
+   * Dynamic lists displaying all cattle with fast client-side filters (Status, Tag Search).
+   * Cow profiles showcasing age, weight, breed, and a visual photo (via Cloudinary).
+   * Detailed individual cow P&L (Profit & Loss): Automatically adds individual expenses,
+     shared expenses, purchase cost, and compares them to sale revenue to calculate 
+     the exact return on investment (ROI) for that cow.
+   * Asset disposal workflow: easily mark active cows as "Sold" to enter sales data,
+     buyer information, and finalize transaction records.
+
+D. TRANSACTION LEDGER
+   * Master ledger showing all financial transactions.
+   * Filter transactions by date range, type (Income/Expense/Investment), 
+     Category, Cow Tag, or Partner/Owner.
+   * Flexibility to post a transaction as:
+     - "Shared" (general herd expense like bulk feed or farm maintenance).
+     - "Individual" (linked directly to one or more specific cows, e.g., treatment 
+       for a specific cow).
+   * Attribution of payments (Partner/Owner who paid) to track capital balances.
+
+E. REPORTS & FINANCIAL ANALYTICS
+   * Comprehensive statements of accounts.
+   * Partner Investment Breakdown: tracks who invested what amount, and who spent
+     what amount on behalf of the farm.
+   * Advanced Exporting:
+     - "Download Excel": Generates clean, structured sheets containing filtered lists.
+     - "Download PDF": Prints polished digital records of transactions and financial statements.
+
+F. SYSTEM SETTINGS & PARAMETERS
+   * Custom Category configuration: allows adding, modifying, or removing 
+     Income, Expense, and Investment types.
+   * Custom Owner/Partner lists: manage the profiles of individuals co-owning the farm.
+
+G. DATABASE BACKUP & RESTORE
+   * JSON Export: Instant one-click download of the complete system database (Cows,
+     Transactions, Owners, Categories, Users) into a single JSON file.
+   * JSON Import: Full restore capabilities allowing database recreation from backup files.
+
+H. PROGRESSIVE WEB APP (PWA) & SYSTEM INTEGRATION
+   * Configured as a fully installable Mobile PWA.
+   * Includes custom service worker registration, web app manifest, icons, and Apple 
+     mobile shortcut icons for quick access.
+   * Fluid, responsive collapsible sidebar catering perfectly to all mobile screen sizes.
+
+--------------------------------------------------------------------------------
+4. UTILITIES & AUTOMATION SCRIPTS
+--------------------------------------------------------------------------------
+The project contains developer-friendly automation tools:
+
+* seed-admin.mjs:
+  Allows running a simple terminal command to easily seed an administrator account 
+  with custom credentials inside the MongoDB Atlas cluster.
+  Usage: node seed-admin.mjs [email] [password] [name]
+
+* seed.mjs:
+  An automatic script that connects to the database via API endpoints and seeds 
+  mock data: 20 cows with realistic records, 40 spread expense transactions, 
+  and 10 income transactions to immediately populate charts and ledger tables.
+
+* clear-db.mjs:
+  A cleanup utility to quickly purge the database tables before refreshing or 
+  starting migrations.
+
+--------------------------------------------------------------------------------
+5. DIRECTORY STRUCTURE
+--------------------------------------------------------------------------------
+cow_management/
+├── src/
+│   ├── app/                      # App Router - Frontend Pages & API Routes
+│   │   ├── api/                  # Backend Endpoints (Auth, Backup, Cows, Reports, etc.)
+│   │   ├── backup/               # Backup/Restore administration page
+│   │   ├── cows/                 # Cow assets views, add page, individual details
+│   │   ├── login/                # Authentication page
+│   │   ├── reports/              # Advanced reporting and PDF/Excel generation
+│   │   ├── settings/             # Category & Owner CRUD tables
+│   │   ├── transactions/         # Ledger, creation page, editing
+│   │   ├── globals.css           # Global Tailwind stylesheet and styling variables
+│   │   └── layout.tsx            # Main layout with context providers
+│   ├── components/               # Custom UI Components (Sidebar, ThemeProvider, Toast...)
+│   ├── lib/                      # Helper libraries (Mongoose db connector, fetcher, utils)
+│   └── models/                   # Mongoose MDB Schema definitions (Cow, Transaction...)
+├── clear-db.mjs                  # Database purge script
+├── seed-admin.mjs                # Admin user creation script
+├── seed.mjs                      # Mock data populator script
+├── tailwind.config.js / next.config.ts # Configuration files
+└── package.json                  # Dependencies configuration
+================================================================================

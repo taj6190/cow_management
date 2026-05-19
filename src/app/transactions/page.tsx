@@ -1,26 +1,25 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
-import useSWR from 'swr';
+import LoadingSpinner from '@/components/LoadingSpinner';
+import { useToast } from '@/components/Toast';
 import { fetcher } from '@/lib/fetcher';
-
-const ITEMS_PER_PAGE = 10;
+import { formatBDT, formatDate } from '@/lib/utils';
 import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
 import {
+  FiArrowDownRight,
+  FiArrowUpRight,
+  FiChevronDown,
+  FiChevronUp,
+  FiEdit2,
   FiPlus,
   FiSearch,
   FiTrash2,
-  FiEdit2,
-  FiArrowUpRight,
-  FiArrowDownRight,
-  FiChevronDown,
-  FiChevronUp,
-  FiX,
-  FiCalendar,
+  FiX
 } from 'react-icons/fi';
-import LoadingSpinner from '@/components/LoadingSpinner';
-import { useToast } from '@/components/Toast';
-import { formatBDT, formatDate } from '@/lib/utils';
+import useSWR from 'swr';
+
+const ITEMS_PER_PAGE = 10;
 
 interface TransactionData {
   _id: string;
@@ -30,7 +29,7 @@ interface TransactionData {
   date: string;
   description: string;
   isShared: boolean;
-  cowId?: { _id: string; tag: string; name: string };
+  cowIds?: { _id: string; tag: string; name: string }[];
   paidBy?: { _id: string; name: string };
   createdByName?: string;
   updatedByName?: string;
@@ -82,7 +81,7 @@ function TransactionTable({
         (t) =>
           t.description.toLowerCase().includes(q) ||
           t.category.toLowerCase().includes(q) ||
-          (t.cowId?.tag || '').toLowerCase().includes(q)
+          (t.cowIds?.some(c => c.tag.toLowerCase().includes(q)) || false)
       );
     }
     if (categoryFilter) result = result.filter((t) => t.category === categoryFilter);
@@ -110,6 +109,8 @@ function TransactionTable({
 
   // Reset page when filters change
   useEffect(() => { setPage(1); }, [searchTerm, categoryFilter, dateRange, sortField, sortDir]);
+
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return <FiChevronDown size={12} className="text-surface-300 hidden sm:block" />;
@@ -191,8 +192,14 @@ function TransactionTable({
                       <td className="whitespace-nowrap"><span className={`badge bg-${color}-50 text-${color}-700`}>{t.category}</span></td>
                       <td className="max-w-[150px] sm:max-w-[180px] truncate text-surface-600">{t.description || '—'}</td>
                       <td>
-                        {t.cowId ? (
-                          <Link href={`/cows/${t.cowId._id}`} className="text-primary-600 hover:underline text-sm">{t.cowId.tag}</Link>
+                        {t.cowIds && t.cowIds.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {t.cowIds.map(c => (
+                              <Link key={c._id} href={`/cows/${c._id}`} className="text-primary-600 hover:underline text-xs bg-primary-50 px-1.5 py-0.5 rounded">
+                                {c.tag}
+                              </Link>
+                            ))}
+                          </div>
                         ) : (
                           <span className="text-surface-400 text-xs">{t.isShared ? 'Shared' : '—'}</span>
                         )}
@@ -208,9 +215,19 @@ function TransactionTable({
                         {isIncome ? '+' : '-'}{formatBDT(t.amount)}
                       </td>
                       <td>
-                        <div className="flex gap-1 justify-end">
-                          <Link href={`/transactions/${t._id}/edit`} className="btn-ghost p-1.5"><FiEdit2 size={14} /></Link>
-                          <button onClick={() => onDelete(t._id)} className="btn-ghost p-1.5 text-red-500 hover:bg-red-50"><FiTrash2 size={14} /></button>
+                        <div className="flex gap-1 justify-end items-center">
+                          {confirmDeleteId === t._id ? (
+                            <div className="flex gap-1 items-center bg-red-50 px-2 py-1 rounded-lg border border-red-100">
+                              <span className="text-[10px] text-red-600 font-bold mr-1">Sure?</span>
+                              <button onClick={() => { onDelete(t._id); setConfirmDeleteId(null); }} className="text-white bg-red-500 hover:bg-red-600 p-1 rounded shadow-sm"><FiTrash2 size={12} /></button>
+                              <button onClick={() => setConfirmDeleteId(null)} className="text-surface-600 bg-surface-200 hover:bg-surface-300 p-1 rounded shadow-sm"><FiX size={12} /></button>
+                            </div>
+                          ) : (
+                            <>
+                              <Link href={`/transactions/${t._id}/edit`} className="btn-ghost p-1.5"><FiEdit2 size={14} /></Link>
+                              <button onClick={() => setConfirmDeleteId(t._id)} className="btn-ghost p-1.5 text-red-500 hover:bg-red-50"><FiTrash2 size={14} /></button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -302,11 +319,17 @@ export default function TransactionsPage() {
   }, [error, showToast]);
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this transaction?')) return;
     try {
       const res = await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
-      if (res.ok) { showToast('Deleted'); mutate(); }
-    } catch { showToast('Failed', 'error'); }
+      if (res.ok) {
+        showToast('Deleted');
+        mutate();
+      } else {
+        showToast('Failed to delete', 'error');
+      }
+    } catch {
+      showToast('Failed', 'error');
+    }
   };
 
   const toggleSort = (setter: typeof setExpenseSort) => (field: SortField) => {
@@ -425,8 +448,8 @@ export default function TransactionsPage() {
                 key={t.id}
                 onClick={() => setActiveTab(t.id as any)}
                 className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${activeTab === t.id
-                    ? 'bg-surface-0 text-surface-800 shadow-sm'
-                    : 'text-surface-500 hover:text-surface-700'
+                  ? 'bg-surface-0 text-surface-800 shadow-sm'
+                  : 'text-surface-500 hover:text-surface-700'
                   }`}
               >
                 <span>{t.icon}</span>

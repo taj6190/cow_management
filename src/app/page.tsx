@@ -1,32 +1,31 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import useSWR from 'swr';
+import LoadingSpinner from '@/components/LoadingSpinner';
 import { fetcher } from '@/lib/fetcher';
-import Link from 'next/link';
+import { formatBDT, formatDate } from '@/lib/utils';
 import {
-  FiTrendingUp,
-  FiTrendingDown,
-  FiDollarSign,
-  FiPlusCircle,
-  FiArrowUpRight,
-  FiArrowDownRight,
-  FiShare2,
-} from 'react-icons/fi';
-import { GiCow } from 'react-icons/gi';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
   ArcElement,
+  BarElement,
+  CategoryScale,
+  Chart as ChartJS,
+  Legend,
+  LinearScale,
   Title,
   Tooltip,
-  Legend,
 } from 'chart.js';
+import Link from 'next/link';
 import { Bar, Doughnut } from 'react-chartjs-2';
-import LoadingSpinner from '@/components/LoadingSpinner';
-import { formatBDT, formatDate } from '@/lib/utils';
+import {
+  FiArrowDownRight,
+  FiArrowUpRight,
+  FiDollarSign,
+  FiPlusCircle,
+  FiShare2,
+  FiTrendingDown,
+  FiTrendingUp,
+} from 'react-icons/fi';
+import { GiCow } from 'react-icons/gi';
+import useSWR from 'swr';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend);
 
@@ -65,7 +64,8 @@ interface DashboardData {
 export default function Dashboard() {
   const { data, error, isLoading } = useSWR<DashboardData>('/api/dashboard', fetcher, {
     revalidateOnFocus: true,
-    dedupingInterval: 5000,
+    dedupingInterval: 15000,
+    revalidateOnReconnect: true,
   });
 
   if (isLoading) return <LoadingSpinner />;

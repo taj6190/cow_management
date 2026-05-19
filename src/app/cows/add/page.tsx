@@ -11,6 +11,7 @@ export default function AddCowPage() {
   const router = useRouter();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [form, setForm] = useState({
     tag: '',
@@ -34,6 +35,7 @@ export default function AddCowPage() {
     reader.readAsDataURL(file);
 
     // Upload
+    setUploading(true);
     const formData = new FormData();
     formData.append('image', file);
     try {
@@ -44,10 +46,13 @@ export default function AddCowPage() {
         showToast('Image uploaded');
       } else {
         showToast(data.error || 'Upload failed', 'error');
+        setImagePreview(null);
       }
     } catch {
       showToast('Image upload failed', 'error');
+      setImagePreview(null);
     }
+    setUploading(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -105,6 +110,8 @@ export default function AddCowPage() {
                   src={imagePreview || form.image}
                   alt="Cow preview"
                   fill
+                  sizes="96px"
+                  unoptimized={!!imagePreview}
                   className="object-cover"
                 />
                 <button
@@ -120,9 +127,9 @@ export default function AddCowPage() {
               </div>
             ) : null}
             <label className="flex-1 cursor-pointer">
-              <div className="border-2 border-dashed border-surface-200 rounded-xl p-6 text-center hover:border-primary-400 hover:bg-primary-50/50 transition-all">
-                <FiUpload className="mx-auto text-surface-400 mb-2" size={24} />
-                <p className="text-sm text-surface-500">Click to upload photo</p>
+              <div className={`border-2 border-dashed rounded-xl p-6 text-center transition-all ${uploading ? 'border-primary-400 bg-primary-50/50' : 'border-surface-200 hover:border-primary-400 hover:bg-primary-50/50'}`}>
+                <FiUpload className={`mx-auto mb-2 ${uploading ? 'text-primary-500 animate-pulse' : 'text-surface-400'}`} size={24} />
+                <p className="text-sm text-surface-500">{uploading ? 'Uploading...' : 'Click to upload photo'}</p>
                 <p className="text-xs text-surface-400 mt-1">JPEG, PNG, WebP (max 5MB)</p>
               </div>
               <input
@@ -141,11 +148,10 @@ export default function AddCowPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="label">Tag / ID *</label>
+              <label className="label">Tag / ID (Auto-generated if blank)</label>
               <input
                 type="text"
-                required
-                placeholder="e.g. COW-001"
+                placeholder="Leave blank for cow-0001"
                 value={form.tag}
                 onChange={(e) => setForm((p) => ({ ...p, tag: e.target.value }))}
                 className="input"
@@ -251,8 +257,8 @@ export default function AddCowPage() {
           <Link href="/cows" className="btn-secondary">
             Cancel
           </Link>
-          <button type="submit" disabled={loading} className="btn-primary">
-            {loading ? 'Adding...' : 'Add Cow'}
+          <button type="submit" disabled={loading || uploading} className="btn-primary">
+            {loading ? 'Adding...' : uploading ? 'Wait for upload...' : 'Add Cow'}
           </button>
         </div>
       </form>
